@@ -11,12 +11,40 @@ library(plotly)
 # load helper functions
 source("helper.R")
 
+# load data with mapping info
+mapping_island <- read_csv("https://raw.githubusercontent.com/sberghei/offer_reserves/master/Data/20180210_NetworkSupplyPointsTable.csv")
+
+mapping_island %<>% 
+  select("POC code", "Island") %>%
+  distinct()
+
+##############################################################################################################################
+
 # user interface
 ui <- fluidPage(
   
   tabsetPanel(
     
-    tabPanel(title = "Intro"),
+    tabPanel(title = "Intro",
+             
+      titlePanel("Energy and reserve offers", windowTitle = "NZ reserves"),
+      
+      h4("What is it about?"),
+      
+      p("This app allows to graphically represent supply curves for energy and reserve offers by generators in the New Zealand electricity market.
+        As"),
+      
+      h4("How to use it?"),
+      p("Follow the Plots tab at the top left of this site. On the new site choose a date and hit the 'Load data' button. 
+        It always takes some moments until the offer data is loaded. You can choose the trading period and individuall or all traders.
+        Each plot shows the supply curve before the first (dotted) and before the last predispatch."),
+      
+      h4("More"),
+      
+      p("The app only uses data that is publicly available on", a("https://www.emi.ea.govt.nz/", href = "https://www.emi.ea.govt.nz/"),
+        "(provided by the Electricity Authority New Zealand)."),
+      p("The R code can be found on this", a("Github account", href = "https://github.com/sberghei/offer_reserves"), "." )
+    ),
     
     tabPanel(title = "Plots",
              
@@ -46,35 +74,33 @@ ui <- fluidPage(
           # Trader
           selectInput(inputId = "trader",
                       label = "Select trader", 
-                      choices = c("Contact Energy" = "CTCT",
-                                  "Trust Energy" = "TRUS",
-                                  "Mighty River Power" = "MRPL",
+                      choices = c("All" = "ALL",
+                                  "Contact Energy" = "CTCT",
                                   "Genesis" = "GENE",
-                                  "Meridian" = "MERI")),
-          
-          # Predispatch
-          checkboxGroupInput(inputId = "predispatch",
-                      label = "Select predispatch",
-                      choices = c("First predispatch", "Last predispatch"),
-                      selected = c("First predispatch", "Last predispatch"))
-        )
-      ),
-    
-      mainPanel(width = 10,
-        splitLayout(
-          plotlyOutput(outputId = "energy_offer_NI"),
-          plotlyOutput(outputId = "energy_offer_SI")
-        ),
-        splitLayout(
-          plotlyOutput(outputId = "reserve_offer_NI_FIR"),
-          plotlyOutput(outputId = "reserve_offer_NI_SIR"),
-          plotlyOutput(outputId = "reserve_offer_SI_FIR"),
-          plotlyOutput(outputId = "reserve_offer_SI_SIR")
-        )
+                                  "Meridian" = "MERI",
+                                  "Mighty River Power" = "MRPL",
+                                  "Trust Energy" = "TRUS"))
+          )
+         ),
+        
+  mainPanel(width = 10,
+            splitLayout(
+              plotlyOutput(outputId = "energy_offer_NI"),
+              plotlyOutput(outputId = "energy_offer_SI")
+            ),
+            splitLayout(
+              plotlyOutput(outputId = "reserve_offer_NI_FIR"),
+              plotlyOutput(outputId = "reserve_offer_NI_SIR"),
+              plotlyOutput(outputId = "reserve_offer_SI_FIR"),
+              plotlyOutput(outputId = "reserve_offer_SI_SIR")
+            )
+          )
       )
+    
+      
     )
   )
-)
+
 
 server <- function(input, output){
   
@@ -88,7 +114,10 @@ server <- function(input, output){
   
   # create plot for energy offers
   offer_data <- reactive({
-    filter(selected_data(), Trader == input$trader, TradingPeriod == input$tp) %>%
+    if(input$trader == "ALL") { temp <- filter(selected_data(), TradingPeriod == input$tp) } else
+    { temp <- filter(selected_data(), Trader == input$trader, TradingPeriod == input$tp) }
+    
+    temp %>%
             left_join(mapping_island, by = c("PointOfConnection" = "POC code")) %>%
             mutate(SubmissionDate = ymd_hms(paste0(UTCSubmissionDate, UTCSubmissionTime)),
                    TradingDateTime = ymd_hm(paste0(TradingDate, tp_to_hour(TradingPeriod)))) %>%
@@ -107,6 +136,8 @@ server <- function(input, output){
         geom_step(data = data_first_predispatch, aes(x = cumMegawatt, y = DollarsPerMegawattHour), linetype = "dashed", direction = "vh") +
         geom_step(data = data_last_predispatch, aes(x = cumMegawatt, y = DollarsPerMegawattHour), direction = "vh") +
         expand_limits(x = 0, y = 0) 
+
+
     
     ggplotly(p)
   })
