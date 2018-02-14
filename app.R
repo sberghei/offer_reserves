@@ -28,16 +28,13 @@ ui <- fluidPage(
     tabPanel(title = "Intro",
              
       titlePanel("Energy and reserve offers", windowTitle = "NZ reserves"),
-      
-      h4("What is it about?"),
-      
-      p("This app allows to graphically represent supply curves for energy and reserve offers by generators in the New Zealand electricity market.
-        As"),
+
+      p("This app allows to graphically represent supply curves for energy and reserve offers by generators in the New Zealand electricity market."),
       
       h4("How to use it?"),
-      p("Follow the Plots tab at the top left of this site. On the new site choose a date and hit the 'Load data' button. 
-        It always takes some moments until the offer data is loaded. You can choose the trading period and individuall or all traders.
-        Each plot shows the supply curve before the first (dotted) and before the last predispatch."),
+      p("Click on the 'Plots' tab at the top left of this site. On the new site choose a date and press the 'Load data' button. 
+        It takes some moments (~30 seconds) until the offer data is loaded. You can choose the trading period (1-48) and a single trader or all traders.
+        Each plot shows the supply curve submitted to the first (dotted line) and to the last predispatch (continuous line)."),
       
       h4("More"),
       
@@ -135,7 +132,9 @@ server <- function(input, output){
     p <- ggplot() +
         geom_step(data = data_first_predispatch, aes(x = cumMegawatt, y = DollarsPerMegawattHour), linetype = "dashed", direction = "vh") +
         geom_step(data = data_last_predispatch, aes(x = cumMegawatt, y = DollarsPerMegawattHour), direction = "vh") +
-        expand_limits(x = 0, y = 0) 
+        expand_limits(x = 0, y = 0) +
+        labs(x = "MW", y = "Price in NZ$", title = "Energy offers, Northern Island") +
+        theme(legend.position = "left")
 
 
     
@@ -152,14 +151,16 @@ server <- function(input, output){
     p <- ggplot() +
       geom_step(data = data_first_predispatch, aes(x = cumMegawatt, y = DollarsPerMegawattHour), linetype = "dashed", direction = "vh") +
       geom_step(data = data_last_predispatch, aes(x = cumMegawatt, y = DollarsPerMegawattHour), direction = "vh") +
-      expand_limits(x = 0, y = 0) 
+      expand_limits(x = 0, y = 0) +
+      labs(x = "MW", y = "Price in NZ$", title = "Energy offers, Southern Island")
     
     ggplotly(p)
   })
 
   # create plot for reserves
   output$reserve_offer_NI_FIR <- renderPlotly({
-    temp <- filter(offer_data(), ProductType == "Reserve", ProductSubClass == "FIR", Island == "NI") 
+    temp <- filter(offer_data(), ProductType == "Reserve", ProductSubClass == "FIR", ProductCategory != "IL",
+                   Island == "NI") 
       
     data_first_predispatch_reserve <- get_first_predispatch(temp)
       
@@ -168,13 +169,16 @@ server <- function(input, output){
     q <- ggplot() +
         geom_step(data = data_first_predispatch_reserve, aes(x = cumMegawatt, y = DollarsPerMegawattHour), linetype = "dashed", direction = "vh") +
         geom_step(data = data_last_predispatch_reserve, aes(x = cumMegawatt, y = DollarsPerMegawattHour), direction = "vh") +
-        expand_limits(x = 0, y = 0)
+        expand_limits(x = 0, y = 0) +
+        labs(x = "MW", y = "Price in NZ$", title = "Reserve offers (FIR), Northern Island") +
+        theme(plot.title = element_text(size=10))
     
     ggplotly(q)
   })
   
   output$reserve_offer_NI_SIR <- renderPlotly({
-    temp <- filter(offer_data(), ProductType == "Reserve", ProductSubClass == "SIR", Island == "NI") 
+    temp <- filter(offer_data(), ProductType == "Reserve", ProductSubClass == "SIR", ProductCategory != "IL",
+                   Island == "NI") 
     
     data_first_predispatch_reserve <- get_first_predispatch(temp)
     
@@ -183,14 +187,17 @@ server <- function(input, output){
     q <- ggplot() +
       geom_step(data = data_first_predispatch_reserve, aes(x = cumMegawatt, y = DollarsPerMegawattHour), linetype = "dashed", direction = "vh") +
       geom_step(data = data_last_predispatch_reserve, aes(x = cumMegawatt, y = DollarsPerMegawattHour), direction = "vh") +
-      expand_limits(x = 0, y = 0)
+      expand_limits(x = 0, y = 0) +
+      labs(x = "MW", y = "Price in NZ$", title = "Reserve offers (SIR), Northern Island") +
+      theme(plot.title = element_text(size=10))
     
     ggplotly(q)
   })
   
   # create plot for reserves
   output$reserve_offer_SI_FIR <- renderPlotly({
-    temp <- filter(offer_data(), ProductType == "Reserve", ProductSubClass == "FIR", Island == "SI") 
+    temp <- filter(offer_data(), ProductType == "Reserve", ProductSubClass == "FIR", ProductCategory != "IL",
+                   Island == "SI") 
     
     data_first_predispatch_reserve <- get_first_predispatch(temp)
     
@@ -199,13 +206,16 @@ server <- function(input, output){
     q <- ggplot() +
       geom_step(data = data_first_predispatch_reserve, aes(x = cumMegawatt, y = DollarsPerMegawattHour), linetype = "dashed", direction = "vh") +
       geom_step(data = data_last_predispatch_reserve, aes(x = cumMegawatt, y = DollarsPerMegawattHour), direction = "vh") +
-      expand_limits(x = 0, y = 0)
+      expand_limits(x = 0, y = 0) +
+      labs(x = "MW", y = "Price in NZ$", title = "Reserve offers (FIR), Southern Island") +
+      theme(plot.title = element_text(size=10))
     
     ggplotly(q)
   })
   
   output$reserve_offer_SI_SIR <- renderPlotly({
-    temp <- filter(offer_data(), ProductType == "Reserve", ProductSubClass == "SIR", Island == "SI") 
+    temp <- filter(offer_data(), ProductType == "Reserve", ProductSubClass == "SIR", ProductCategory != "IL",
+                   Island == "SI") 
     
     data_first_predispatch_reserve <- get_first_predispatch(temp)
     
@@ -214,7 +224,9 @@ server <- function(input, output){
     q <- ggplot() +
       geom_step(data = data_first_predispatch_reserve, aes(x = cumMegawatt, y = DollarsPerMegawattHour), linetype = "dashed", direction = "vh") +
       geom_step(data = data_last_predispatch_reserve, aes(x = cumMegawatt, y = DollarsPerMegawattHour), direction = "vh") +
-      expand_limits(x = 0, y = 0)
+      expand_limits(x = 0, y = 0) +
+      labs(x = "MW", y = "Price in NZ$", title = "Reserve offers (SIR), Southern Island") +
+      theme(plot.title = element_text(size=10))
     
     ggplotly(q)
   })
